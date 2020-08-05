@@ -66,12 +66,17 @@ function singleidprocess(singleid, index, friend, T){
 }
 
 function idlistprocess(idlist, T){
+    var index = 0;
     console.log("The number of your follower is: %d", idlist.length);
-    idlist.forEach(function(item, index, array) {
-        ismyfriend(item, T).then(friend => {
-            singleidprocess(item, index, friend, T);
-        })
-    })
+    var newinterval = setInterval(() => {
+      ismyfriend(idlist[index], T).then(friend => {
+        singleidprocess(idlist[index], index, friend, T);
+      })
+      index += 1;
+      if (index >= idlist.length){
+          clearInterval(newinterval);
+      }
+    }, 5000)
 }
 
 function main(scrid){
