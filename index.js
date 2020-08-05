@@ -49,14 +49,15 @@ function ismyfriend(singleid, T){
 function singleidprocess(singleid, index, friend, T){
     console.log("index %d, processing id: %s", index, singleid);
     T.get('users/show', { user_id: singleid },  function (err, data, response) {
-        console.log("user screen name: %s", data.screen_name);
+        var name = data.screen_name;
+        console.log("user screen name: %s", name);
         if (friend == 1) {
             console.log("This user is my friend. Move on to the next one.")
         } else if (data.followers_count >= 100) {
             console.log("This user is not my friend, but appear to not be a Chinese bot. Move on to the next one.")
         } else if (data.followers_count <= 5) {
             console.log("This user is definitely a Chinese bot. Block it!")
-            T.post('blocks/create', { user_id: singleid }, function (err, data, response) {
+            T.post('blocks/create', { screen_name: name }, function (err, data, response) {
               console.log("Successfully blocked %s", data.screen_name);
             })
         } else {
@@ -77,6 +78,7 @@ function idlistprocess(idlist, T){
           clearInterval(newinterval);
       }
     }, 5000)
+
 }
 
 function main(scrid){
