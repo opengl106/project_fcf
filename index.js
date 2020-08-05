@@ -46,7 +46,7 @@ function ismyfriend(singleid, T){
     })
 }
 
-function singleidprocess(singleid, index, friend, T){
+function singleidprocess(singleid, index, friend, T, blocklist){
     console.log("index %d, processing id: %s", index, singleid);
     T.get('users/show', { user_id: singleid },  function (err, data, response) {
         var name = data.screen_name;
@@ -56,37 +56,55 @@ function singleidprocess(singleid, index, friend, T){
         } else if (data.followers_count >= 100) {
             console.log("This user is not my friend, but appear to not be a Chinese bot. Move on to the next one.")
         } else if (data.followers_count <= 5) {
-            console.log("This user is definitely a Chinese bot. Block it!")
-            T.post('blocks/create', { screen_name: name }, function (err, data, response) {
-              console.log("Successfully blocked %s", data.screen_name);
-            })
+            console.log("This user is definitely a Chinese bot. Listed!")
+            blocklist.push(name);
         } else {
             console.log("This user is not my friend, and it is not sure whether this user is a Chinese bot.")
         }
     })
 }
 
-function idlistprocess(idlist, T){
-    var index = 0;
-    console.log("The number of your follower is: %d", idlist.length);
-    var newinterval = setInterval(() => {
-      ismyfriend(idlist[index], T).then(friend => {
-        singleidprocess(idlist[index], index, friend, T);
-      })
-      index += 1;
-      if (index >= idlist.length){
-          clearInterval(newinterval);
-      }
-    }, 5000)
-
+function idlistprocess(idlist, blocklist, T){
+    return new Promise((resolve, reject) => {
+      var index = 0;
+      console.log("The number of your follower is: %d", idlist.length);
+      var newinterval = setInterval(() => {
+        ismyfriend(idlist[index], T).then(friend => {
+          singleidprocess(idlist[index], index, friend, T, blocklist);
+        })
+        index += 1;
+        if (index >= idlist.length){
+            clearInterval(newinterval);
+            return resolve(1);
+        }
+      }, 10000)
+    })
+}
+function blocklistprocess(blocklist, T){
+  console.log("Starting to block those on the List.")
+  index = 0;
+  var blockinterval = setInterval(() => {
+    T.post('blocks/create', { screen_name: blocklist[index] }, function (err, data, response) {
+      console.log("Successfully blocked %s", data.screen_name);
+    })
+    index += 1;
+    if (index >= blocklist.length){
+        clearInterval(blockinterval);
+    }
+  }, 10000)
 }
 
 function main(scrid){
     var Twit = require('twit');
     var config = require('./config');
     var T = new Twit(config);
+    var blocklist = [];
     getFollowers(T, scrid).then(idlist => {
-        idlistprocess(idlist, T)
+        idlistprocess(idlist, blocklist, T).then((results) => {
+          if(results == 1){
+            blocklistprocess(blocklist, T)
+          }
+        })
     })
 }
 
