@@ -127,43 +127,77 @@ function listprocess (list, T, interval = 5 * 62 * 1000, blockers = [], cursor =
   })
 }
 
+//function blocksingle
+//arguments: screen name, the authentication T, cursor
+//return: a Promise either to be resolve(1), resolve("RATE LIMIT EXCEEDED") or reject(err).
+function blocksingle(name, T, cursor){
+  return new Promise((resolve, reject) => {
+    T.post('blocks/create', { screen_name: name }, function (err, data, response) {
+      if(err){
+        if (err.message === 'Rate limit exceeded') {
+          console.log("Rate limit reached. Wait for 300 seconds. No.4")
+          resolve("RATE LIMIT EXCEEDED")
+        } else {
+          reject("ERROR!")
+        }
+      }else{
+        console.log("Successfully blocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
+        resolve(1);
+      }
+    });
+  })
+}
+
+//function unblocksingle
+//arguments: screen name, the authentication T, cursor
+//return: a Promise either to be resolve(1), resolve("RATE LIMIT EXCEEDED") or reject(err).
+function unblocksingle(name, T, cursor){
+  return new Promise((resolve, reject) => {
+    T.post('blocks/destroy', { screen_name: name }, function (err, data, response) {
+      if(err){
+        if (err.message === 'Rate limit exceeded') {
+          console.log("Rate limit reached. Wait for 300 seconds. No.5")
+          resolve("RATE LIMIT EXCEEDED")
+        } else {
+          reject("ERROR!")
+        }
+      }else{
+        console.log("Successfully unblocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
+        resolve(1);
+      }
+    });
+  })
+}
+
 //function blockprocess
 //arguments: a list, the authentication T, time interval, cursor
 //return: a Promise either to be resolve(1) or reject(err).
 function blockprocess(list, T, interval = 5 * 62 * 1000, cursor = 0){
   return new Promise((resolve, reject) => {
     var blockinterval = setInterval(() => {
-      T.post('blocks/create', { screen_name: list[cursor] }, function (err, data, response) {
-        if(err){
-          if (err.message === 'Rate limit exceeded') {
-            console.log("Rate limit reached. Wait for 300 seconds. No.4")
-            clearInterval(blockinterval);
-          } else {
-            reject("ERROR!")
-          }
+      blocksingle(list[cursor], T, cursor).then((result) => {
+        if(result == 1){
+          setTimeout(() => {
+            unblocksingle(list[cursor], T, cursor).then((result) => {
+              if(result == 1){
+                cursor += 1;
+                if (cursor >= list.length){
+                  clearInterval(blockinterval);
+                }
+              }else if(result === "RATE LIMIT EXCEEDED"){
+                clearInterval(blockinterval);
+              }else{
+                reject("ERROR!")
+              }
+            })
+          }, 2500);
+        }else if(result === "RATE LIMIT EXCEEDED"){
+          clearInterval(blockinterval);
         }else{
-          console.log("Successfully blocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
+          reject("ERROR!")
         }
-      });
-      setTimeout(() => {
-        T.post('blocks/destroy', { screen_name: list[cursor] }, function (err, data, response) {
-          if(err){
-            if (err.message === 'Rate limit exceeded') {
-              console.log("Rate limit reached. Wait for 300 seconds. No.5")
-              clearInterval(blockinterval);
-            } else {
-              reject("ERROR!")
-            }
-          }else{
-            console.log("Successfully unblocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
-            cursor += 1;
-            if(cursor >= list.length){
-              clearInterval(blockinterval);
-            }
-          }
-        });
-      }, 5000);
-    }, 10000);
+      })
+    }, 5000);
     if (cursor >= list.length){
       return resolve(1);
     } else {
