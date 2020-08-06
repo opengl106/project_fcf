@@ -177,20 +177,18 @@ function blockprocess(list, T, interval = 5 * 62 * 1000, cursor = 0){
     var blockinterval = setInterval(() => {
       blocksingle(list[cursor], T, cursor).then((result) => {
         if(result == 1){
-          setTimeout(() => {
-            unblocksingle(list[cursor], T, cursor).then((result) => {
-              if(result == 1){
-                cursor += 1;
-                if (cursor >= list.length){
-                  clearInterval(blockinterval);
-                }
-              }else if(result === "RATE LIMIT EXCEEDED"){
+          unblocksingle(list[cursor], T, cursor).then((result) => {
+            if(result == 1){
+              cursor += 1;
+              if (cursor >= list.length){
                 clearInterval(blockinterval);
-              }else{
-                reject("ERROR!")
               }
-            })
-          }, 2500);
+            }else if(result === "RATE LIMIT EXCEEDED"){
+              clearInterval(blockinterval);
+            }else{
+              reject("ERROR!")
+            }
+          })
         }else if(result === "RATE LIMIT EXCEEDED"){
           clearInterval(blockinterval);
         }else{
