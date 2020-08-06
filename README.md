@@ -1,6 +1,7 @@
 # Project FCF (Fuck Chinese Followers - 操死拆腻子逼)
 ## 介绍
-今天晚上玩了砍口垒之后没事干写了个屏蔽拆腻子视奸号的小脚本。当然代码可读性是我一贯的风格。
+今天上午玩砍口垒之余，在昨天晚上的0.01-demo版本的经验上，改进了API的使用方式，制作出了有实用价值的FCF工具。\
+代码可读性也提升到了正常人的水平。
 ## 使用
 需要安装node.js，同时需要获得twitter developer帐号。\
 获得twitter developer帐号后，将config.js中的“待填写”改为你的twitter帐号的相应信息。\
