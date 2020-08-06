@@ -1,5 +1,3 @@
-const { resolve } = require('path');
-
 console.log("the tool is running");
 
 const readline = require('readline').createInterface({
