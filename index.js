@@ -1,4 +1,4 @@
-//Project F. C. F. (Fuck Chinese Followers) first work, version 1.0.0.
+//Project F. C. F. (Flush Conceivable Fakers) first work, version 1.0.0.
 //Copyright LabMikazu (毅航实验室), Shizuki Kagurazaka (Ziyue Ji), 2020.8.6.
 
 console.log("the tool is running");
@@ -81,7 +81,7 @@ function listtruefollowers(idlist, friendslist){
 
 //function judge
 //arguments: a user object
-//return: 1 if judged Chinese bot and 0 if not so.
+//return: 1 if judged bot and 0 if not so.
 function judge(user){
   if (user.followers_count >= 100){
     return 0;
@@ -116,7 +116,7 @@ function listprocess (list, T, interval = 5 * 62 * 1000, blockers = [], cursor =
             blockers.push(item.screen_name);
           }
         })
-        console.log("Scanned: %d, Detected Chinese bots: %d", cursor >= list.length ? list.length : cursor , blockers.length);
+        console.log("Scanned: %d, Detected bots: %d", cursor >= list.length ? list.length : cursor , blockers.length);
         if (cursor < list.length) {
           return resolve(listprocess(list, T, interval, blockers, cursor))
         } else {
@@ -141,7 +141,7 @@ function blocksingle(name, T, cursor){
           reject("ERROR!")
         }
       }else{
-        console.log("Successfully blocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
+        console.log("Successfully blocked the %d bot: %s", cursor + 1, data.screen_name);
         resolve(1);
       }
     });
@@ -162,7 +162,7 @@ function unblocksingle(name, T, cursor){
           reject("ERROR!")
         }
       }else{
-        console.log("Successfully unblocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
+        console.log("Successfully unblocked the %d bot: %s", cursor + 1, data.screen_name);
         resolve(1);
       }
     });
@@ -222,12 +222,12 @@ function main(scrid){
       var truelist = listtruefollowers(idlist, friendslist);
       console.log("Your non-friend followers count: %d", truelist.length);
       listprocess(truelist, T).then(blocklist => {
-        console.log("The total number of Chinese bots detected: %d", blocklist.length);
+        console.log("The total number of bots detected: %d", blocklist.length);
         console.log("This is a list of the first 100 in them.")
         console.log(blocklist.slice(0, 100));
         blockprocess(blocklist, T).then(result =>{
           if(result == 1){
-            console.log("The tool succeeded in fucking Chinese followers.");
+            console.log("The tool succeeded in flushing conceivable fakers.");
           }else{
             throw new Error("ERROR!")
           }
