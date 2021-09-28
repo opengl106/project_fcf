@@ -1,4 +1,4 @@
-//Project F. C. F. (Flush Conceivable Fakers) first work, version 1.0.0.
+//Project F. C. F. (Fuck Chinese Followers) first work, version 1.0.0.
 //Copyright LabMikazu (毅航实验室), Shizuki Kagurazaka (Ziyue Ji), 2020.8.6.
 
 console.log("the tool is running");
@@ -81,23 +81,39 @@ function listtruefollowers(idlist, friendslist){
 
 //function judge
 //arguments: a user object
-//return: 1 if judged bot and 0 if not so.
-function judge(user){
-  if (user.followers_count >= 100){
-    return 0;
-  } else if (user.followers_count <= 5){
+//return: 1 if judged Chinese bot and 0 if not so.
+function judge_A(_, _){
+  return 1;
+}
+function judge_B(user, _){
+  if (user.protected){
     return 1;
-  } else if (user.followers_count <= 50 && parseFloat(user.followers_count) / parseFloat(user.friends_count) <= 0.05){
+  } return 0;
+}
+function judge_C(user, ratio){
+  if (parseFloat(user.followers_count) / parseFloat(user.friends_count) <= parseFloat(ratio)){
     return 1;
-  } else {
-    return 0;
-  }
+  } return 0;
+}
+function judge_D(user, lowest){
+  if (user.followers_count <= parseFloat(lowest)){
+    return 1;
+  } return 0;
 }
 
 //function listprocess
 //arguments: an id list, the authentication T, time interval, already listed blockers, cursor
 //return: a Promise either to be reject(err) or resolve(list), where list is the list of blockers.
-function listprocess (list, T, interval = 5 * 62 * 1000, blockers = [], cursor = 0) {
+function listprocess (list, mode, param_CD, T, interval = 5 * 62 * 1000, blockers = [], cursor = 0) {
+  if (mode == "A") {
+    var judge = judge_A;
+  } else if (mode == "C") {
+    var judge = judge_C;
+  } else if (mode == "D") {
+    var judge = judge_D;
+  } else {
+    var judge = judge_B;
+  }
   return new Promise((resolve, reject) => {
     T.get('users/lookup', { user_id: list.slice(cursor, cursor + 100 >= list.length ? list.length : cursor + 100) }, (err, data, response) => {
       if (err) {
@@ -112,11 +128,11 @@ function listprocess (list, T, interval = 5 * 62 * 1000, blockers = [], cursor =
       } else {
         cursor = cursor + 100
         data.forEach((item) => {
-          if(judge(item)){
+          if(judge(item, param_CD)){
             blockers.push(item.screen_name);
           }
         })
-        console.log("Scanned: %d, Detected bots: %d", cursor >= list.length ? list.length : cursor , blockers.length);
+        console.log("Scanned: %d, Detected Chinese bots: %d", cursor >= list.length ? list.length : cursor , blockers.length);
         if (cursor < list.length) {
           return resolve(listprocess(list, T, interval, blockers, cursor))
         } else {
@@ -141,7 +157,7 @@ function blocksingle(name, T, cursor){
           reject("ERROR!")
         }
       }else{
-        console.log("Successfully blocked the %d bot: %s", cursor + 1, data.screen_name);
+        console.log("Successfully blocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
         resolve(1);
       }
     });
@@ -162,7 +178,7 @@ function unblocksingle(name, T, cursor){
           reject("ERROR!")
         }
       }else{
-        console.log("Successfully unblocked the %d bot: %s", cursor + 1, data.screen_name);
+        console.log("Successfully unblocked the %d Chinese bot: %s", cursor + 1, data.screen_name);
         resolve(1);
       }
     });
@@ -195,7 +211,7 @@ function blockprocess(list, T, interval = 5 * 62 * 1000, cursor = 0){
           reject("ERROR!")
         }
       })
-    }, 5000);
+    }, 4000);
     if (cursor >= list.length){
       return resolve(1);
     } else {
@@ -210,7 +226,7 @@ function blockprocess(list, T, interval = 5 * 62 * 1000, cursor = 0){
 //function main
 //arguments: scrid
 //return: none
-function main(scrid){
+function main(scrid, mode, param_CD){
   var Twit = require('twit');
   var config = require('./config');
   var T = new Twit(config);
@@ -221,13 +237,13 @@ function main(scrid){
       console.log("Your friends number is: %d", friendslist.length);
       var truelist = listtruefollowers(idlist, friendslist);
       console.log("Your non-friend followers count: %d", truelist.length);
-      listprocess(truelist, T).then(blocklist => {
-        console.log("The total number of bots detected: %d", blocklist.length);
+      listprocess(truelist, mode, param_CD, T).then(blocklist => {
+        console.log("The total number of Chinese bots detected: %d", blocklist.length);
         console.log("This is a list of the first 100 in them.")
         console.log(blocklist.slice(0, 100));
         blockprocess(blocklist, T).then(result =>{
           if(result == 1){
-            console.log("The tool succeeded in flushing conceivable fakers.");
+            console.log("The tool succeeded in fucking Chinese followers.");
           }else{
             throw new Error("ERROR!")
           }
@@ -237,4 +253,15 @@ function main(scrid){
   })
 }
 
-readline.question("Input your screen ID\n", main);
+readline.question("Input your screen ID\n", (scrid) => {
+  readline.question("Please input your mode (input A/B/C).\n Mode A: Block all non-friend\
+    followers;\n Mode B (default): Block all locked accounts in non-friend followers;\n Mode C:\
+    Block all followers with a particular follower/following ratio;\n Mode D:\
+    Block all followers with a particular follower number.", (mode) => {
+      readline.question("Please input the parameter. \n For mode A or B: This is non-necessary\n For mode C:\
+        Please input a minimum follower/following ratio:\n For mode D: Please input a minimum\
+        follower number", (param_CD) => {
+        main(scrid, mode, param_CD)
+      });
+  });
+});
