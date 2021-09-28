@@ -188,15 +188,16 @@ function unblocksingle(name, T, cursor){
 //function blockprocess
 //arguments: a list, the authentication T, time interval, cursor
 //return: a Promise either to be resolve(1) or reject(err).
-function blockprocess(list, T, interval = 5 * 62 * 1000, cursor = 0){
+function blockprocess(list, T, interval = 5 * 62 * 1000, cursor_b = 0, cursor_u = 0){
   return new Promise((resolve, reject) => {
     var blockinterval = setInterval(() => {
-      blocksingle(list[cursor], T, cursor).then((result) => {
+      blocksingle(list[cursor_b], T, cursor_b).then((result) => {
         if(result == 1){
-          unblocksingle(list[cursor], T, cursor).then((result) => {
+          cursor_b += 1;
+          unblocksingle(list[cursor_u], T, cursor_u).then((result) => {
             if(result == 1){
-              cursor += 1;
-              if (cursor >= list.length){
+              cursor_u += 1;
+              if (cursor_u >= list.length){
                 clearInterval(blockinterval);
               }
             }else if(result === "RATE LIMIT EXCEEDED"){
@@ -212,11 +213,11 @@ function blockprocess(list, T, interval = 5 * 62 * 1000, cursor = 0){
         }
       })
     }, 4000);
-    if (cursor >= list.length){
+    if (cursor_u >= list.length){
       return resolve(1);
     } else {
       setTimeout(() => {
-        return resolve(blockprocess(list, T, interval, cursor));
+        return resolve(blockprocess(list, T, interval, cursor_b, cursor_u));
       }, interval);
     }
   })
