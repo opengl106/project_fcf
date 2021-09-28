@@ -120,7 +120,7 @@ function listprocess (list, mode, param_CD, T, interval = 5 * 62 * 1000, blocker
         if (err.message === 'Rate limit exceeded') {
           console.log("Rate limit reached. Wait for 300 seconds. No.3")
           setTimeout(() => {
-            return resolve(listprocess(list, T, interval, blockers, cursor))
+            return resolve(listprocess(list, mode, param_CD, T, interval, blockers, cursor))
           }, interval)
         } else {
           reject(err)
@@ -134,7 +134,7 @@ function listprocess (list, mode, param_CD, T, interval = 5 * 62 * 1000, blocker
         })
         console.log("Scanned: %d, Detected Chinese bots: %d", cursor >= list.length ? list.length : cursor , blockers.length);
         if (cursor < list.length) {
-          return resolve(listprocess(list, T, interval, blockers, cursor))
+          return resolve(listprocess(list, mode, param_CD, T, interval, blockers, cursor))
         } else {
           return resolve([].concat(...blockers))
         }
@@ -254,13 +254,14 @@ function main(scrid, mode, param_CD){
 }
 
 readline.question("Input your screen ID\n", (scrid) => {
-  readline.question("Please input your mode (input A/B/C).\n Mode A: Block all non-friend\
-    followers;\n Mode B (default): Block all locked accounts in non-friend followers;\n Mode C:\
+  readline.question("Please input your mode (input A/B/C).\n Mode A:\
+    Block all non-friend followers;\n Mode B (default):\
+    Block all locked accounts in non-friend followers;\n Mode C:\
     Block all followers with a particular follower/following ratio;\n Mode D:\
-    Block all followers with a particular follower number.", (mode) => {
-      readline.question("Please input the parameter. \n For mode A or B: This is non-necessary\n For mode C:\
-        Please input a minimum follower/following ratio:\n For mode D: Please input a minimum\
-        follower number", (param_CD) => {
+    Block all followers with a particular follower number.\n", (mode) => {
+      readline.question("Please input the parameter.\n For mode A or B:\ This is non-necessary.\n For mode C:\
+        Please input a minimum follower/following ratio.\n For mode D:\
+        Please input a minimum follower number.\n", (param_CD) => {
         main(scrid, mode, param_CD)
       });
   });
