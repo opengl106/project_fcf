@@ -67,12 +67,12 @@ function getFriends (T, screenName, interval = 5 * 62 * 1000, friends = [], curs
 }
 
 //function listtruefollowers
-//arguments: idlist, friendslist
-//return: a new list contains all that appeared in idlist but not in friendslist
-function listtruefollowers(idlist, friendslist){
+//arguments: idlist, my_friendslist
+//return: a new list contains all that appeared in idlist but not in my_friendslist
+function listtruefollowers(idlist, my_friendslist){
   var newlist = [];
   idlist.forEach((item) => {
-    if (!(friendslist.includes(item))){
+    if (!(my_friendslist.includes(item))){
       newlist.push(item);
     }
   });
@@ -84,6 +84,15 @@ function listtruefollowers(idlist, friendslist){
 //return: 1 if judged Chinese bot and 0 if not so.
 function judge_A(_, _){
   return 1;
+}
+function judge_A2(user, minimum_common_friends_count, my_friendslist){
+  if (user.protected){
+    return 0;
+  } console.log("Reading followers of account %s", user.screen_name);
+  getFollowers(T, user.screen_name).then(idlist => {
+    result = (idlist.filter(value => my_friendslist.includes(value)).length < minimum_common_friends_count);
+  });
+    return result;
 }
 function judge_B(user, _){
   if (user.protected){
@@ -102,17 +111,19 @@ function judge_D(user, lowest){
 }
 
 //function listprocess
-//arguments: an id list, the authentication T, time interval, already listed blockers, cursor
+//arguments: an id list, the authentication T, my_friendslist, time interval, already listed blockers, cursor
 //return: a Promise either to be reject(err) or resolve(list), where list is the list of blockers.
-function listprocess (list, mode, param_CD, T, interval = 5 * 62 * 1000, blockers = [], cursor = 0) {
+function listprocess (list, mode, param, T, my_friendslist, interval = 5 * 62 * 1000, blockers = [], cursor = 0) {
   if (mode == "A") {
     var judge = judge_A;
+  } else if (mode == "B") {
+    var judge = judge_B;
   } else if (mode == "C") {
     var judge = judge_C;
   } else if (mode == "D") {
     var judge = judge_D;
   } else {
-    var judge = judge_B;
+    var judge = (item, param) => judge_A2(item, param, my_friendslist);
   }
   return new Promise((resolve, reject) => {
     T.get('users/lookup', { user_id: list.slice(cursor, cursor + 100 >= list.length ? list.length : cursor + 100) }, (err, data, response) => {
@@ -120,7 +131,7 @@ function listprocess (list, mode, param_CD, T, interval = 5 * 62 * 1000, blocker
         if (err.message === 'Rate limit exceeded') {
           console.log("Rate limit reached. Wait for 300 seconds. No.3")
           setTimeout(() => {
-            return resolve(listprocess(list, mode, param_CD, T, interval, blockers, cursor))
+            return resolve(listprocess(list, mode, param, T, interval, blockers, cursor))
           }, interval)
         } else {
           reject(err)
@@ -128,13 +139,13 @@ function listprocess (list, mode, param_CD, T, interval = 5 * 62 * 1000, blocker
       } else {
         cursor = cursor + 100
         data.forEach((item) => {
-          if(judge(item, param_CD)){
+          if(judge(item, param)){
             blockers.push(item.screen_name);
           }
         })
         console.log("Scanned: %d, Detected Chinese bots: %d", cursor >= list.length ? list.length : cursor , blockers.length);
         if (cursor < list.length) {
-          return resolve(listprocess(list, mode, param_CD, T, interval, blockers, cursor))
+          return resolve(listprocess(list, mode, param, T, interval, blockers, cursor))
         } else {
           return resolve([].concat(...blockers))
         }
@@ -227,18 +238,18 @@ function blockprocess(list, T, interval = 5 * 62 * 1000, cursor_b = 0, cursor_u 
 //function main
 //arguments: scrid
 //return: none
-function main(scrid, mode, param_CD){
+function main(scrid, mode, param){
   var Twit = require('twit');
   var config = require('./config');
   var T = new Twit(config);
   var blocklist = [];
   getFollowers(T, scrid).then(idlist => {
     console.log("Your followers number is: %d", idlist.length);
-    getFriends(T, scrid).then(friendslist => {
-      console.log("Your friends number is: %d", friendslist.length);
-      var truelist = listtruefollowers(idlist, friendslist);
+    getFriends(T, scrid).then(my_friendslist => {
+      console.log("Your friends number is: %d", my_friendslist.length);
+      var truelist = listtruefollowers(idlist, my_friendslist);
       console.log("Your non-friend followers count: %d", truelist.length);
-      listprocess(truelist, mode, param_CD, T).then(blocklist => {
+      listprocess(truelist, mode, param, T, my_friendslist).then(blocklist => {
         console.log("The total number of Chinese bots detected: %d", blocklist.length);
         console.log("This is a list of the first 100 in them.")
         console.log(blocklist.slice(0, 100));
@@ -255,15 +266,18 @@ function main(scrid, mode, param_CD){
 }
 
 readline.question("Input your screen ID\n", (scrid) => {
-  readline.question("Please input your mode (input A/B/C).\n Mode A:\
-    Block all non-friend followers;\n Mode B (default):\
-    Block all locked accounts in non-friend followers;\n Mode C:\
-    Block all followers with a particular follower/following ratio;\n Mode D:\
+  readline.question("Please input your mode (input A/A2/B/C, default is A2).\n Mode A: \
+    Block all non-friend followers;\n Mode A2:\
+    Block all non-friend followers without enough common friends, except locked ones;\n Mode B: \
+    Block all locked accounts in non-friend followers;\n Mode C: \
+    Block all followers with a particular follower/following ratio;\n Mode D: \
     Block all followers with a particular follower number.\n", (mode) => {
-      readline.question("Please input the parameter.\n For mode A or B:\ This is non-necessary.\n For mode C:\
-        Please input a minimum follower/following ratio.\n For mode D:\
-        Please input a minimum follower number.\n", (param_CD) => {
-        main(scrid, mode, param_CD)
+      readline.question("Please input the parameter.\n For mode A or B:\
+     	This is non-necessary.\n For mode A2:\
+      Please input a minimum common friends number. For mode C: \
+      Please input a minimum follower/following ratio.\n For mode D: \
+      Please input a minimum follower number.\n", (param) => {
+        main(scrid, mode, param)
       });
   });
 });
