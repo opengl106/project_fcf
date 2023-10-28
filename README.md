@@ -32,3 +32,8 @@ Sorta practical in judging conceivable fakers, huh.
 Block all followers with a particular follower number.
 
 Kinda practical but not really.
+
+## Trivia
+"FCF" initially means something far more aggro and derogatory, but was reported by Chinese users as "racial" and "hateful" and thus was forced to censored to the currenty meaning by Github.
+
+One can easily figure out or speculate what it was meant to be initially, given that they personally knows the author, Lena Shizuki, and her relentless agony & ressentment (<- a French word borrowed by F. Nietzsche).
